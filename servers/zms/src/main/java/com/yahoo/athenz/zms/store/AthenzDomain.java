@@ -32,6 +32,7 @@ public class AthenzDomain {
     public AthenzDomain(String name) {
         this.name = name;
         roles = new ArrayList<>();
+        groups = new ArrayList<>();
         policies = new ArrayList<>();
         services = new ArrayList<>();
     }

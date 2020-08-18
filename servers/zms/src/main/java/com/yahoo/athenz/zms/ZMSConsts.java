@@ -111,6 +111,7 @@ public final class ZMSConsts {
     public static final String ZMS_PROP_AUDIT_REF_CHECK_OBJECTS           = "athenz.zms.audit_ref_check_objects";
 
     public static final String ZMS_AUDIT_TYPE_ROLE     = "role";
+    public static final String ZMS_AUDIT_TYPE_GROUP    = "group";
     public static final String ZMS_AUDIT_TYPE_POLICY   = "policy";
     public static final String ZMS_AUDIT_TYPE_SERVICE  = "service";
     public static final String ZMS_AUDIT_TYPE_DOMAIN   = "domain";

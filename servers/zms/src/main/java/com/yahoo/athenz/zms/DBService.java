@@ -126,13 +126,16 @@ public class DBService implements RolesProvider {
         // the value is a comma separated list of supported objects:
         // role, policy, service, domain, entity
 
-        final String auditCheck = System.getProperty(ZMSConsts.ZMS_PROP_AUDIT_REF_CHECK_OBJECTS, "role");
+        final String auditCheck = System.getProperty(ZMSConsts.ZMS_PROP_AUDIT_REF_CHECK_OBJECTS, "role,group");
 
         String[] objects = auditCheck.split(",");
         for (String object : objects) {
             switch (object) {
                 case ZMSConsts.ZMS_AUDIT_TYPE_ROLE:
                     auditRefSet.set(AUDIT_TYPE_ROLE);
+                    break;
+                case ZMSConsts.ZMS_AUDIT_TYPE_GROUP:
+                    auditRefSet.set(AUDIT_TYPE_GROUP);
                     break;
                 case ZMSConsts.ZMS_AUDIT_TYPE_POLICY:
                     auditRefSet.set(AUDIT_TYPE_POLICY);
@@ -596,7 +599,7 @@ public class DBService implements RolesProvider {
 
         // open our audit record and log our trust field if one is available
 
-        auditDetails.append("{\"name\": \"").append(groupName);
+        auditDetails.append("{\"name\": \"").append(groupName).append('\"');
 
         // now we need process our groups members depending this is
         // a new insert operation or an update
@@ -5564,6 +5567,64 @@ public class DBService implements RolesProvider {
         }
     }
 
+    void executePutGroupMembershipDecision(ResourceContext ctx, final String domainName, final String groupName,
+                                           GroupMember groupMember, final String auditRef, final String caller) {
+
+        // our exception handling code does the check for retry count
+        // and throws the exception it had received when the retry
+        // count reaches 0
+
+        for (int retryCount = defaultRetryCount; ; retryCount--) {
+
+            try (ObjectStoreConnection con = store.getConnection(false, true)) {
+
+                String principal = getPrincipalName(ctx);
+
+                // make sure the role auditing requires are bet
+
+                Group orignalGroup = con.getGroup(domainName, groupName);
+                if (orignalGroup == null) {
+                    con.rollbackChanges();
+                    throw ZMSUtils.notFoundError(caller + ": Unknown group: " + groupName, caller);
+                }
+
+                checkObjectAuditEnabled(con, orignalGroup.getAuditEnabled(), orignalGroup.getName(),
+                        auditRef, caller, principal);
+
+                // process our confirm group member support
+
+                if (!con.confirmGroupMember(domainName, groupName, groupMember, principal, auditRef)) {
+                    con.rollbackChanges();
+                    throw ZMSUtils.requestError(caller + ": unable to apply group membership decision for member: " +
+                            groupMember.getMemberName() + " and group: " + groupName, caller);
+                }
+
+                // update our domain time-stamp and save changes
+
+                con.updateGroupModTimestamp(domainName, groupName);
+                saveChanges(con, domainName);
+
+                // audit log the request
+
+                StringBuilder auditDetails = new StringBuilder(ZMSConsts.STRING_BLDR_SIZE_DEFAULT);
+                auditLogGroupMember(auditDetails, groupMember, true);
+
+                auditLogRequest(ctx, domainName, auditRef, caller, ZMSConsts.HTTP_PUT,
+                        groupName, auditDetails.toString());
+
+                return;
+
+            } catch (ResourceException ex) {
+
+                // otherwise check if we need to retry or return failure
+
+                if (!shouldRetryOperation(ex, retryCount)) {
+                    throw ex;
+                }
+            }
+        }
+    }
+
     DomainRoleMembership getPendingDomainRoleMembers(final String principal) {
 
         DomainRoleMembership domainRoleMembership = new DomainRoleMembership();
@@ -5644,6 +5705,76 @@ public class DBService implements RolesProvider {
         }
     }
 
+    void executePutGroupReview(ResourceContext ctx, final String domainName, final String groupName, Group group,
+                               final String auditRef, final String caller) {
+
+        // our exception handling code does the check for retry count
+        // and throws the exception it had received when the retry
+        // count reaches 0
+
+        for (int retryCount = defaultRetryCount; ; retryCount--) {
+
+            try (ObjectStoreConnection con = store.getConnection(false, true)) {
+
+                final String principal = getPrincipalName(ctx);
+
+                // first verify that auditing requirements are met
+
+                checkDomainAuditEnabled(con, domainName, auditRef, caller, principal, AUDIT_TYPE_GROUP);
+
+                StringBuilder auditDetails = new StringBuilder(ZMSConsts.STRING_BLDR_SIZE_DEFAULT);
+
+                List<GroupMember> deletedMembers = new ArrayList<>();
+                List<GroupMember> noActionMembers = new ArrayList<>();
+
+                auditDetails.append("{\"name\": \"").append(groupName).append('\"')
+                        .append(", \"selfServe\": ").append(group.getSelfServe() == Boolean.TRUE ? "true" : "false")
+                        .append(", \"auditEnabled\": ").append(group.getAuditEnabled() == Boolean.TRUE ? "true" : "false");
+
+                for (GroupMember member : group.getGroupMembers()) {
+
+                    // if active flag is coming as false for the member, that means it's flagged for deletion
+
+                    if (member.getActive() == Boolean.FALSE) {
+                        if (!con.deleteGroupMember(domainName, groupName, member.getMemberName(), principal, auditRef)) {
+                            con.rollbackChanges();
+                            throw ZMSUtils.notFoundError(caller + ": unable to delete group member: " +
+                                    member.getMemberName() + " from group: " + groupName, caller);
+                        }
+                        deletedMembers.add(member);
+                    } else {
+                        noActionMembers.add(member);
+                    }
+                }
+
+                // construct audit log details
+
+                auditLogGroupMembers(auditDetails, "deleted-members", deletedMembers);
+                auditLogGroupMembers(auditDetails, "no-action-members", noActionMembers);
+
+                auditDetails.append("}");
+
+                if (!deletedMembers.isEmpty()) {
+                    con.updateGroupModTimestamp(domainName, groupName);
+                }
+
+                con.updateGroupReviewTimestamp(domainName, groupName);
+                saveChanges(con, domainName);
+
+                // audit log the request
+
+                auditLogRequest(ctx, domainName, auditRef, caller, "REVIEW", groupName, auditDetails.toString());
+
+                return;
+
+            } catch (ResourceException ex) {
+                if (!shouldRetryOperation(ex, retryCount)) {
+                    throw ex;
+                }
+            }
+        }
+    }
+
     void executePutRoleReview(ResourceContext ctx, String domainName, String roleName, Role role,
                               String auditRef, String caller) {
 
@@ -5712,6 +5843,7 @@ public class DBService implements RolesProvider {
                 }
 
                 // construct audit log details
+
                 auditLogRoleMembers(auditDetails, "deleted-members", deletedMembers);
                 auditLogRoleMembers(auditDetails, "extended-members", extendedMembers);
                 auditLogRoleMembers(auditDetails, "no-action-members", noactionMembers);
@@ -5719,17 +5851,16 @@ public class DBService implements RolesProvider {
                 auditDetails.append("}");
 
                 if (!deletedMembers.isEmpty() || !extendedMembers.isEmpty()) {
-                    // we have one or more changes to the role. We should update both lastReviewed as well as modified timestamps
+                    // we have one or more changes to the role. We should update
+                    // both lastReviewed as well as modified timestamps
                     con.updateRoleModTimestamp(domainName, roleName);
-                    con.updateRoleReviewTimestamp(domainName, roleName);
-                } else {
-                    // since "no-action" is still a review, we are updating lastReviewed timestamp
-                    con.updateRoleReviewTimestamp(domainName, roleName);
                 }
 
+                con.updateRoleReviewTimestamp(domainName, roleName);
                 saveChanges(con, domainName);
 
                 // audit log the request
+
                 auditLogRequest(ctx, domainName, auditRef, caller, "REVIEW", roleName, auditDetails.toString());
 
                 return;

@@ -108,7 +108,7 @@ public class DBServiceTest {
         
         System.setProperty(ZMSConsts.ZMS_PROP_FILE_NAME, "src/test/resources/zms.properties");
         System.setProperty(ZMSConsts.ZMS_PROP_AUDIT_REF_CHECK_OBJECTS,
-                "role,policy,service,domain,entity,tenancy,template");
+                "role,group,policy,service,domain,entity,tenancy,template");
         System.setProperty(ZMSConsts.ZMS_PROP_SOLUTION_TEMPLATE_FNAME,
                 "src/test/resources/solution_templates.json");
         initializeZms();

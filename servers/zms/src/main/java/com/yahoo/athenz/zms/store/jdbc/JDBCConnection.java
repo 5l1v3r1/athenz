@@ -434,7 +434,7 @@ public class JDBCConnection implements ObjectStoreConnection {
     private static final String SQL_GET_DOMAIN_GROUP_MEMBERS = "SELECT principal_group.name, principal.name, "
             + "principal_group_member.expiration, principal_group_member.system_disabled FROM principal "
             + "JOIN principal_group_member ON principal_group_member.principal_id=principal.principal_id "
-            + "JOIN principal_group ON principal_group.role_id=principal_group_member.role_id "
+            + "JOIN principal_group ON principal_group.group_id=principal_group_member.group_id "
             + "WHERE principal_group.domain_id=?;";
 
     private static final String CACHE_DOMAIN    = "d:";
@@ -3223,7 +3223,7 @@ public class JDBCConnection implements ObjectStoreConnection {
             ps.setInt(1, domainId);
             try (ResultSet rs = executeQuery(ps, caller)) {
                 while (rs.next()) {
-                    String groupName = rs.getString(1);
+                    final String groupName = rs.getString(1);
                     Group group = groupMap.get(groupName);
                     if (group == null) {
                         continue;

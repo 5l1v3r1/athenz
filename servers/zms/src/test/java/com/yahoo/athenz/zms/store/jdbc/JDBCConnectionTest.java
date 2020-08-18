@@ -5687,11 +5687,14 @@ public class JDBCConnectionTest {
         JDBCConnection jdbcConn = new JDBCConnection(mockConn, true);
 
         // one-domain, 2 roles, 2 members altogether
+        // 1 group with 1 member
         // 2 policies, 2 assertions
         // 1 service, 1 public key
         Mockito.when(mockResultSet.next()).thenReturn(true) // domain
             .thenReturn(true).thenReturn(true).thenReturn(false) // 2 roles
             .thenReturn(true).thenReturn(true).thenReturn(false) // 1 member each
+            .thenReturn(true).thenReturn(false) // 1 group
+            .thenReturn(true).thenReturn(false) // 1 member
             .thenReturn(true).thenReturn(true).thenReturn(false) // 2 policies
             .thenReturn(true).thenReturn(true).thenReturn(false) // 1 assertion each
             .thenReturn(true).thenReturn(false) // 1 service
@@ -5700,18 +5703,23 @@ public class JDBCConnectionTest {
         
         Mockito.when(mockResultSet.getString(ZMSConsts.DB_COLUMN_NAME))
             .thenReturn("role1").thenReturn("role2") // role names
+            .thenReturn("group1") // group name
             .thenReturn("policy1").thenReturn("policy2") // policy names
             .thenReturn("service1"); // service name
         
         Mockito.when(mockResultSet.getString(1))
             .thenReturn("role1").thenReturn("role2") // role names
+            .thenReturn("group1") // group name
             .thenReturn("policy1").thenReturn("policy2") // policy names
             .thenReturn("service1"); // service names 
             
         Mockito.when(mockResultSet.getString(2))
-            .thenReturn("user").thenReturn("user") // member domain names
+            .thenReturn("user").thenReturn("user") // role member domain names
+            .thenReturn("user") // group member domain names
             .thenReturn("host1"); // service host name
-        Mockito.when(mockResultSet.getString(3)).thenReturn("user1").thenReturn("user2"); // member local names
+        Mockito.when(mockResultSet.getString(3))
+            .thenReturn("user1").thenReturn("user2") // role member local names
+            .thenReturn("user3"); // group member local names
 
         Mockito.doReturn(new java.sql.Timestamp(1454358916)).when(mockResultSet).getTimestamp(ZMSConsts.DB_COLUMN_MODIFIED);
         Mockito.doReturn(true).when(mockResultSet).getBoolean(ZMSConsts.DB_COLUMN_ENABLED);
@@ -5752,6 +5760,8 @@ public class JDBCConnectionTest {
         assertEquals(2, athenzDomain.getRoles().size());
         assertEquals(1, athenzDomain.getRoles().get(0).getRoleMembers().size());
         assertEquals(1, athenzDomain.getRoles().get(1).getRoleMembers().size());
+        assertEquals(1, athenzDomain.getGroups().size());
+        assertEquals(1, athenzDomain.getGroups().get(0).getGroupMembers().size());
         assertEquals(2, athenzDomain.getPolicies().size());
         assertEquals(1, athenzDomain.getPolicies().get(0).getAssertions().size());
         assertEquals(1, athenzDomain.getPolicies().get(1).getAssertions().size());
