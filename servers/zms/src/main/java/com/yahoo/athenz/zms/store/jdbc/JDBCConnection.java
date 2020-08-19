@@ -295,7 +295,6 @@ public class JDBCConnection implements ObjectStoreConnection {
             + "WHERE ro.audit_enabled=true AND ro.domain_id IN ( select domain_id FROM domain WHERE org IN ( "
             + "SELECT DISTINCT role.name AS org FROM role_member JOIN role ON role.role_id=role_member.role_id "
             + "WHERE role_member.principal_id=? AND role.domain_id=?) ) order by do.name, ro.name, principal.name;";
-
     private static final String SQL_PENDING_DOMAIN_AUDIT_ROLE_MEMBER_LIST = "SELECT do.name AS domain, ro.name AS role, "
             + "principal.name AS member, rmo.expiration, rmo.review_reminder, rmo.audit_ref, rmo.req_time, rmo.req_principal "
             + "FROM principal JOIN pending_role_member rmo "
@@ -303,7 +302,6 @@ public class JDBCConnection implements ObjectStoreConnection {
             + "WHERE ro.audit_enabled=true AND ro.domain_id IN ( select domain_id FROM domain WHERE name IN ( "
             + "SELECT DISTINCT role.name AS domain_name FROM role_member JOIN role ON role.role_id=role_member.role_id "
             + "WHERE role_member.principal_id=? AND role.domain_id=?) ) order by do.name, ro.name, principal.name;";
-
     private static final String SQL_PENDING_DOMAIN_ADMIN_ROLE_MEMBER_LIST = "SELECT do.name AS domain, ro.name AS role, "
             + "principal.name AS member, rmo.expiration, rmo.review_reminder, rmo.audit_ref, rmo.req_time, rmo.req_principal "
             + "FROM principal JOIN pending_role_member rmo "
@@ -373,22 +371,22 @@ public class JDBCConnection implements ObjectStoreConnection {
             + "principal_group_member.req_principal, principal_group_member.system_disabled FROM principal "
             + "JOIN principal_group_member ON principal_group_member.principal_id=principal.principal_id "
             + "JOIN principal_group ON principal_group.group_id=principal_group_member.group_id "
-            + "WHERE group.group_id=? AND principal.name=?;";
-    private static final String SQL_GET_TEMP_GROUP_MEMBER = "SELECT principal.principal_id, group_member.expiration, "
-            + "group_member.req_principal, group_member.system_disabled FROM principal "
-            + "JOIN group_member ON group_member.principal_id=principal.principal_id "
-            + "JOIN group ON group.group_id=group_member.group_id "
-            + "WHERE group.group_id=? AND principal.name=? AND group_member.expiration=?;";
+            + "WHERE principal_group.group_id=? AND principal.name=?;";
+    private static final String SQL_GET_TEMP_GROUP_MEMBER = "SELECT principal.principal_id, principal_group_member.expiration, "
+            + "principal_group_member.req_principal, principal_group_member.system_disabled FROM principal "
+            + "JOIN principal_group_member ON principal_group_member.principal_id=principal.principal_id "
+            + "JOIN principal_group ON principal_group.group_id=principal_group_member.group_id "
+            + "WHERE principal_group.group_id=? AND principal.name=? AND principal_group_member.expiration=?;";
     private static final String SQL_GET_PENDING_GROUP_MEMBER = "SELECT principal.principal_id, "
-            + "pending_group_member.expiration, pending_group_member.req_principal FROM principal "
-            + "JOIN pending_group_member ON pending_group_member.principal_id=principal.principal_id "
-            + "JOIN group ON group.group_id=pending_group_member.group_id "
-            + "WHERE group.group_id=? AND principal.name=?;";
+            + "pending_principal_group_member.expiration, pending_principal_group_member.req_principal FROM principal "
+            + "JOIN pending_principal_group_member ON pending_principal_group_member.principal_id=principal.principal_id "
+            + "JOIN principal_group ON principal_group.group_id=pending_principal_group_member.group_id "
+            + "WHERE principal_group.group_id=? AND principal.name=?;";
     private static final String SQL_GET_TEMP_PENDING_GROUP_MEMBER = "SELECT principal.principal_id, "
-            + "pending_group_member.expiration, pending_group_member.req_principal FROM principal "
-            + "JOIN pending_group_member ON pending_group_member.principal_id=principal.principal_id "
-            + "JOIN group ON group.group_id=pending_group_member.group_id "
-            + "WHERE group.group_id=? AND principal.name=? AND pending_group_member.expiration=?;";
+            + "pending_principal_group_member.expiration, pending_principal_group_member.req_principal FROM principal "
+            + "JOIN pending_principal_group_member ON pending_principal_group_member.principal_id=principal.principal_id "
+            + "JOIN principal_group ON principal_group.group_id=pending_principal_group_member.group_id "
+            + "WHERE principal_group.group_id=? AND principal.name=? AND pending_principal_group_member.expiration=?;";
     private static final String SQL_LIST_GROUP_AUDIT_LOGS = "SELECT * FROM group_audit_log WHERE group_id=?;";
     private static final String SQL_UPDATE_GROUP_REVIEW_TIMESTAMP = "UPDATE principal_group SET last_reviewed_time=CURRENT_TIMESTAMP(3) WHERE group_id=?;";
     private static final String SQL_LIST_GROUPS_WITH_RESTRICTIONS = "SELECT domain.name as domain_name, "
@@ -399,10 +397,10 @@ public class JDBCConnection implements ObjectStoreConnection {
             + "principal_group_member.active, principal_group_member.audit_ref, principal_group_member.system_disabled FROM principal "
             + "JOIN principal_group_member ON principal_group_member.principal_id=principal.principal_id "
             + "JOIN principal_group ON principal_group.group_id=principal_group_member.group_id WHERE principal_group.group_id=?;";
-    private static final String SQL_LIST_PENDING_GROUP_MEMBERS = "SELECT principal.name, pending_group_member.expiration, "
-            + "pending_group_member.req_time, pending_group_member.audit_ref FROM principal "
-            + "JOIN pending_group_member ON pending_group_member.principal_id=principal.principal_id "
-            + "JOIN principal_group ON principal_group.group_id=pending_group_member.group_id WHERE principal_group.group_id=?;";
+    private static final String SQL_LIST_PENDING_GROUP_MEMBERS = "SELECT principal.name, pending_principal_group_member.expiration, "
+            + "pending_principal_group_member.req_time, pending_principal_group_member.audit_ref FROM principal "
+            + "JOIN pending_principal_group_member ON pending_principal_group_member.principal_id=principal.principal_id "
+            + "JOIN principal_group ON principal_group.group_id=pending_principal_group_member.group_id WHERE principal_group.group_id=?;";
     private static final String SQL_COUNT_GROUP_MEMBERS = "SELECT COUNT(*) FROM principal_group_member WHERE group_id=?;";
     private static final String SQL_STD_GROUP_MEMBER_EXISTS = "SELECT principal_id FROM principal_group_member WHERE group_id=? AND principal_id=?;";
     private static final String SQL_PENDING_GROUP_MEMBER_EXISTS = "SELECT principal_id FROM pending_principal_group_member WHERE group_id=? AND principal_id=?;";
@@ -436,6 +434,37 @@ public class JDBCConnection implements ObjectStoreConnection {
             + "JOIN principal_group_member ON principal_group_member.principal_id=principal.principal_id "
             + "JOIN principal_group ON principal_group.group_id=principal_group_member.group_id "
             + "WHERE principal_group.domain_id=?;";
+    private static final String SQL_PENDING_ORG_AUDIT_GROUP_MEMBER_LIST = "SELECT do.name AS domain, grp.name AS group_name, "
+            + "principal.name AS member, pgm.expiration, pgm.audit_ref, pgm.req_time, pgm.req_principal "
+            + "FROM principal JOIN pending_principal_group_member pgm "
+            + "ON pgm.principal_id=principal.principal_id JOIN principal_group grp ON grp.group_id=pgm.group_id JOIN domain do ON grp.domain_id=do.domain_id "
+            + "WHERE grp.audit_enabled=true AND grp.domain_id IN ( select domain_id FROM domain WHERE org IN ( "
+            + "SELECT DISTINCT role.name AS org FROM role_member JOIN role ON role.role_id=role_member.role_id "
+            + "WHERE role_member.principal_id=? AND role.domain_id=?) ) order by do.name, grp.name, principal.name;";
+    private static final String SQL_PENDING_DOMAIN_AUDIT_GROUP_MEMBER_LIST = "SELECT do.name AS domain, grp.name AS group_name, "
+            + "principal.name AS member, pgm.expiration, pgm.audit_ref, pgm.req_time, pgm.req_principal "
+            + "FROM principal JOIN pending_principal_group_member pgm "
+            + "ON pgm.principal_id=principal.principal_id JOIN principal_group grp ON grp.group_id=pgm.group_id JOIN domain do ON grp.domain_id=do.domain_id "
+            + "WHERE grp.audit_enabled=true AND grp.domain_id IN ( select domain_id FROM domain WHERE name IN ( "
+            + "SELECT DISTINCT role.name AS domain_name FROM role_member JOIN role ON role.role_id=role_member.role_id "
+            + "WHERE role_member.principal_id=? AND role.domain_id=?) ) order by do.name, grp.name, principal.name;";
+    private static final String SQL_PENDING_DOMAIN_ADMIN_GROUP_MEMBER_LIST = "SELECT do.name AS domain, grp.name AS group_name, "
+            + "principal.name AS member, pgm.expiration, pgm.audit_ref, pgm.req_time, pgm.req_principal "
+            + "FROM principal JOIN pending_principal_group_member pgm "
+            + "ON pgm.principal_id=principal.principal_id JOIN principal_group grp ON grp.group_id=pgm.group_id JOIN domain do ON grp.domain_id=do.domain_id "
+            + "WHERE (grp.self_serve=true OR grp.review_enabled=true) AND grp.domain_id IN ( SELECT domain.domain_id FROM domain JOIN role "
+            + "ON role.domain_id=domain.domain_id JOIN role_member ON role.role_id=role_member.role_id "
+            + "WHERE role_member.principal_id=? AND role_member.active=true AND role.name='admin' ) "
+            + "order by do.name, grp.name, principal.name;";
+    private static final String SQL_GET_EXPIRED_PENDING_GROUP_MEMBERS = "SELECT d.name, r.name, p.name, pgm.expiration, pgm.audit_ref, pgm.req_time, pgm.req_principal "
+            + "FROM principal p JOIN pending_princpial_group_member pgm "
+            + "ON pgm.principal_id=p.principal_id JOIN principal_group grp ON pgm.group_id=grp.group_id JOIN domain d ON d.domain_id=grp.domain_id "
+            + "WHERE pgm.req_time < (CURRENT_TIME - INTERVAL ? DAY);";
+    private static final String SQL_AUDIT_ENABLED_PENDING_GROUP_MEMBERSHIP_REMINDER_ENTRIES = "SELECT distinct d.org, d.name FROM pending_principal_group_member pgm "
+            + "JOIN principal_group grp ON grp.group_id=pgm.group_id JOIN domain d ON grp.domain_id=d.domain_id "
+            + "WHERE grp.audit_enabled=true AND pgm.last_notified_time=? AND rm.server=?;";
+    private static final String SQL_UPDATE_PENDING_GROUP_MEMBERS_NOTIFICATION_TIMESTAMP = "UPDATE pending_principal_group_member SET last_notified_time=?, server=? "
+            + "WHERE DAYOFWEEK(req_time)=DAYOFWEEK(?) AND (last_notified_time IS NULL || last_notified_time < (CURRENT_TIME - INTERVAL ? DAY));";
 
     private static final String CACHE_DOMAIN    = "d:";
     private static final String CACHE_ROLE      = "r:";
@@ -4017,6 +4046,135 @@ public class JDBCConnection implements ObjectStoreConnection {
         return listDomainRoleMembersWithQuery(domainName, SQL_GET_REVIEW_OVERDUE_DOMAIN_ROLE_MEMBERS, "listDomainRoleMembersWithQuery");
     }
 
+    @Override
+    public Map<String, List<DomainGroupMember>> getPendingDomainGroupMembers(String principal) {
+
+        final String caller = "getPendingDomainGroupMembersList";
+        int principalId = getPrincipalId(principal);
+        if (principalId == 0) {
+            throw notFoundError(caller, ZMSConsts.OBJECT_PRINCIPAL, principal);
+        }
+
+        Map<String, List<DomainGroupMember>> domainGroupMembersMap = new LinkedHashMap<>();
+
+        // first we're going to retrieve all the members that are waiting
+        // for approval based on their domain org values
+
+        processPendingGroupMembers(ZMSConsts.SYS_AUTH_AUDIT_BY_ORG, SQL_PENDING_ORG_AUDIT_GROUP_MEMBER_LIST,
+                principalId, domainGroupMembersMap, caller);
+
+        // then we're going to retrieve all the members that are waiting
+        // for approval based on their domain name values
+
+        processPendingGroupMembers(ZMSConsts.SYS_AUTH_AUDIT_BY_DOMAIN, SQL_PENDING_DOMAIN_AUDIT_GROUP_MEMBER_LIST,
+                principalId, domainGroupMembersMap, caller);
+
+        // finally retrieve the self serve groups
+
+        try (PreparedStatement ps = con.prepareStatement(SQL_PENDING_DOMAIN_ADMIN_GROUP_MEMBER_LIST)) {
+            ps.setInt(1, principalId);
+            try (ResultSet rs = executeQuery(ps, caller)) {
+                while (rs.next()) {
+                    populateDomainGroupMembersMapFromResultSet(domainGroupMembersMap, rs);
+                }
+            }
+        } catch (SQLException ex) {
+            throw sqlError(ex, caller);
+        }
+
+        return domainGroupMembersMap;
+    }
+
+    @Override
+    public Map<String, List<DomainGroupMember>> getExpiredPendingDomainGroupMembers(int pendingGroupMemberLifespan) {
+
+        final String caller = "getExpiredPendingDomainGroupMembers";
+
+        //update audit log with details before deleting
+
+        Map<String, List<DomainGroupMember>> domainGroupMembersMap = new LinkedHashMap<>();
+
+        try (PreparedStatement ps = con.prepareStatement(SQL_GET_EXPIRED_PENDING_GROUP_MEMBERS)) {
+            ps.setInt(1, pendingGroupMemberLifespan);
+            try (ResultSet rs = executeQuery(ps, caller)) {
+                while (rs.next()) {
+                    populateDomainGroupMembersMapFromResultSet(domainGroupMembersMap, rs);
+                }
+            }
+        } catch (SQLException ex) {
+            throw sqlError(ex, caller);
+        }
+        return domainGroupMembersMap;
+    }
+
+    @Override
+    public Set<String> getPendingGroupMembershipApproverRoles(String server, long timestamp) {
+
+        final String caller = "getPendingGroupMembershipApproverGroups";
+
+        Set<String> targetRoles = new HashSet<>();
+        int orgDomainId = getDomainId(ZMSConsts.SYS_AUTH_AUDIT_BY_ORG);
+        int domDomainId = getDomainId(ZMSConsts.SYS_AUTH_AUDIT_BY_DOMAIN);
+
+        java.sql.Timestamp ts = new java.sql.Timestamp(timestamp);
+
+        //Get orgs and domains for audit enabled groups with pending membership
+
+        try (PreparedStatement ps = con.prepareStatement(SQL_AUDIT_ENABLED_PENDING_GROUP_MEMBERSHIP_REMINDER_ENTRIES)) {
+            ps.setTimestamp(1, ts);
+            ps.setString(2, server);
+            try (ResultSet rs = executeQuery(ps, caller)) {
+                while (rs.next()) {
+
+                    // first process the org value
+
+                    final String org = rs.getString(1);
+                    if (org != null && !org.isEmpty()) {
+                        int roleId = getRoleId(orgDomainId, org);
+                        if (roleId != 0) {
+                            targetRoles.add(ZMSUtils.roleResourceName(ZMSConsts.SYS_AUTH_AUDIT_BY_ORG, org));
+                        }
+                    }
+
+                    // then process the domain value
+
+                    final String domain = rs.getString(2);
+                    int roleId = getRoleId(domDomainId, domain);
+                    if (roleId != 0) {
+                        targetRoles.add(ZMSUtils.roleResourceName(ZMSConsts.SYS_AUTH_AUDIT_BY_DOMAIN, domain));
+                    }
+                }
+            }
+        } catch (SQLException ex) {
+            throw sqlError(ex, caller);
+        }
+
+        // get admin groups of pending self-serve and review-enabled requests
+
+        getRecipientRoleForAdminMembershipApproval(caller, targetRoles, ts, server);
+
+        return targetRoles;
+    }
+
+    @Override
+    public boolean updatePendingGroupMembersNotificationTimestamp(String server, long timestamp, int delayDays) {
+
+        final String caller = "updatePendingGroupMembersNotificationTimestamp";
+        int affectedRows;
+        java.sql.Timestamp ts = new java.sql.Timestamp(timestamp);
+        try (PreparedStatement ps = con.prepareStatement(SQL_UPDATE_PENDING_GROUP_MEMBERS_NOTIFICATION_TIMESTAMP)) {
+            ps.setTimestamp(1, ts);
+            ps.setString(2, server);
+            ps.setTimestamp(3, ts);
+            ps.setInt(4, delayDays);
+
+            affectedRows = executeUpdate(ps, caller);
+        } catch (SQLException ex) {
+            throw sqlError(ex, caller);
+        }
+        return (affectedRows > 0);
+    }
+
     private DomainRoleMembers listDomainRoleMembersWithQuery(String domainName, String query, String caller) {
         int domainId = getDomainId(domainName);
         if (domainId == 0) {
@@ -4171,6 +4329,23 @@ public class JDBCConnection implements ObjectStoreConnection {
         }
     }
 
+    void processPendingGroupMembers(final String domainName, final String query, int principalId,
+                                    Map<String, List<DomainGroupMember>> domainGroupMembersMap, final String caller) {
+
+        int auditDomId = getDomainId(domainName);
+        try (PreparedStatement ps = con.prepareStatement(query)) {
+            ps.setInt(1, principalId);
+            ps.setInt(2, auditDomId);
+            try (ResultSet rs = executeQuery(ps, caller)) {
+                while (rs.next()) {
+                    populateDomainGroupMembersMapFromResultSet(domainGroupMembersMap, rs);
+                }
+            }
+        } catch (SQLException ex) {
+            throw sqlError(ex, caller);
+        }
+    }
+
     @Override
     public Map<String, List<DomainRoleMember>> getPendingDomainRoleMembers(String principal) {
 
@@ -4245,6 +4420,42 @@ public class JDBCConnection implements ObjectStoreConnection {
         domainRoleMember.setMemberRoles(memberRoles);
         if (!domainRoleMembers.contains(domainRoleMember)) {
             domainRoleMembers.add(domainRoleMember);
+        }
+    }
+
+    private void populateDomainGroupMembersMapFromResultSet(Map<String, List<DomainGroupMember>> domainGroupMembersMap, ResultSet rs) throws SQLException {
+
+        List<DomainGroupMember> domainGroupMembers;
+        final String domain = rs.getString(1);
+        if (!domainGroupMembersMap.containsKey(domain)) {
+            domainGroupMembers = new ArrayList<>();
+            domainGroupMembersMap.put(domain, domainGroupMembers);
+        }
+        domainGroupMembers = domainGroupMembersMap.get(domain);
+
+        DomainGroupMember domainGroupMember = new DomainGroupMember();
+        domainGroupMember.setMemberName(rs.getString(3));
+        List<GroupMember> memberGroups = new ArrayList<>();
+
+        GroupMember memberGroup = new GroupMember();
+        memberGroup.setGroupName(rs.getString(2));
+        java.sql.Timestamp expiration = rs.getTimestamp(4);
+        if (expiration != null) {
+            memberGroup.setExpiration(Timestamp.fromMillis(expiration.getTime()));
+        }
+        memberGroup.setActive(false);
+        memberGroup.setAuditRef(rs.getString(5));
+
+        expiration = rs.getTimestamp(6);
+        if (expiration != null) {
+            memberGroup.setRequestTime(Timestamp.fromMillis(expiration.getTime()));
+        }
+        memberGroup.setRequestPrincipal(rs.getString(7));
+        memberGroups.add(memberGroup);
+
+        domainGroupMember.setMemberGroups(memberGroups);
+        if (!domainGroupMembers.contains(domainGroupMember)) {
+            domainGroupMembers.add(domainGroupMember);
         }
     }
 

@@ -5646,6 +5646,27 @@ public class DBService implements RolesProvider {
         return domainRoleMembership;
     }
 
+    DomainGroupMembership getPendingDomainGroupMembers(final String principal) {
+
+        DomainGroupMembership domainGroupMembership = new DomainGroupMembership();
+        List<DomainGroupMembers> domainGroupMembersList = new ArrayList<>();
+        DomainGroupMembers domainGroupMembers;
+
+        try (ObjectStoreConnection con = store.getConnection(true, false)) {
+            Map<String, List<DomainGroupMember>> domainGroupMembersMap = con.getPendingDomainGroupMembers(principal);
+            if (domainGroupMembersMap != null) {
+                for (String domain : domainGroupMembersMap.keySet()) {
+                    domainGroupMembers = new DomainGroupMembers();
+                    domainGroupMembers.setDomainName(domain);
+                    domainGroupMembers.setMembers(domainGroupMembersMap.get(domain));
+                    domainGroupMembersList.add(domainGroupMembers);
+                }
+                domainGroupMembership.setDomainGroupMembersList(domainGroupMembersList);
+            }
+        }
+        return domainGroupMembership;
+    }
+
     public Set<String> getPendingMembershipApproverRoles(int delayDays) {
         try (ObjectStoreConnection con = store.getConnection(true, true)) {
             long updateTs = System.currentTimeMillis();

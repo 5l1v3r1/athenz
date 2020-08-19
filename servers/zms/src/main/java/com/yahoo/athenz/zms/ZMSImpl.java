@@ -8258,7 +8258,7 @@ public class ZMSImpl implements Authorizer, KeyStore, ZMSHandler {
         domainName = domainName.toLowerCase();
         groupName = groupName.toLowerCase();
         memberName = memberName.toLowerCase();
-        AthenzObject.MEMBERSHIP.convertToLowerCase(membership);
+        AthenzObject.GROUP_MEMBERSHIP.convertToLowerCase(membership);
 
         final Principal principal = ((RsrcCtxWrapper) ctx).principal();
 
@@ -8667,8 +8667,6 @@ public class ZMSImpl implements Authorizer, KeyStore, ZMSHandler {
             throw ZMSUtils.notFoundError("No such domain: " + domainName, caller);
         }
 
-        Group dbGroup = getGroupFromDomain(groupName, domain);
-
         // normalize and remove duplicate members
 
         normalizeGroupMembers(group);
@@ -8676,6 +8674,30 @@ public class ZMSImpl implements Authorizer, KeyStore, ZMSHandler {
         // process our request
 
         dbService.executePutGroupReview(ctx, domainName, groupName, group, auditRef, caller);
+    }
+
+    @Override
+    public DomainGroupMembership getPendingDomainGroupMembersList(ResourceContext ctx, String principal) {
+        final String caller = ctx.getApiName();
+
+        final Principal ctxPrincipal = ((RsrcCtxWrapper) ctx).principal();
+        logPrincipal(ctx);
+
+        validateRequest(ctx.request(), caller);
+
+        String checkPrincipal;
+        if (principal != null && !principal.isEmpty()) {
+            validate(principal, TYPE_ENTITY_NAME, caller);
+            checkPrincipal = normalizeDomainAliasUser(principal.toLowerCase());
+        } else {
+            checkPrincipal = ctxPrincipal.getFullName();
+        }
+
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("getpendingdomaingroupmemberslist principal: ({})", checkPrincipal);
+        }
+
+        return dbService.getPendingDomainGroupMembers(checkPrincipal);
     }
 
     void validateUserAuthorityFilterAttribute(final String authorityFilter, final String caller)  {

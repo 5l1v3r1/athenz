@@ -1698,6 +1698,26 @@ public class FileConnection implements ObjectStoreConnection {
         }), "listOverdueReviewRoleMembers");
     }
 
+    @Override
+    public Map<String, List<DomainGroupMember>> getPendingDomainGroupMembers(String principal) {
+        return null;
+    }
+
+    @Override
+    public Map<String, List<DomainGroupMember>> getExpiredPendingDomainGroupMembers(int pendingRoleMemberLifespan) {
+        return null;
+    }
+
+    @Override
+    public Set<String> getPendingGroupMembershipApproverRoles(String server, long timestamp) {
+        return null;
+    }
+
+    @Override
+    public boolean updatePendingGroupMembersNotificationTimestamp(String server, long timestamp, int delayDays) {
+        return false;
+    }
+
     private DomainRoleMembers listReviewRoleMembersWithFilter(String domainName, Function<RoleMember, Boolean> filterFunc, String caller) {
         DomainStruct domainStruct = getDomainStruct(domainName);
         if (domainStruct == null) {

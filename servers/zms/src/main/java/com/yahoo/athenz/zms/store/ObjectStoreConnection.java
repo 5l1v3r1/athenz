@@ -174,6 +174,11 @@ public interface ObjectStoreConnection extends Closeable {
 
     DomainRoleMembers listOverdueReviewRoleMembers(String domainName);
 
+    Map<String, List<DomainGroupMember>> getPendingDomainGroupMembers(String principal);
+    Map<String, List<DomainGroupMember>> getExpiredPendingDomainGroupMembers(int pendingRoleMemberLifespan);
+    Set<String> getPendingGroupMembershipApproverRoles(String server, long timestamp);
+    boolean updatePendingGroupMembersNotificationTimestamp(String server, long timestamp, int delayDays);
+
     List<TemplateMetaData> getDomainTemplates(String domainName);
     boolean updateDomainTemplate(String domainName, String templateName, TemplateMetaData templateMetaData);
 }
